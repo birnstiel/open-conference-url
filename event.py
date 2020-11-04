@@ -81,6 +81,7 @@ class Event(object):
         now_datetime = datetime.datetime.fromtimestamp(now_timestamp).astimezone()
         now_utc_datetime = datetime.datetime.utcfromtimestamp(now_timestamp).astimezone()
         offset = now_datetime - now_utc_datetime
+        print(offset.seconds // 3600)
         offset_datetime = utc_datetime + offset
         return offset_datetime.combine(
             date=offset_datetime.date(),

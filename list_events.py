@@ -127,7 +127,7 @@ def main():
 
     # Alfred doesn't appear to care about whitespace in the resulting JSON, so
     # we are prettifying the JSON output here for easier debugging
-    print(json.dumps(feedback, indent=2))
+    # print(json.dumps(feedback, indent=2))
 
 
 if __name__ == '__main__':
