@@ -8,6 +8,12 @@ import icalendar
 import pytz
 
 
+# The number of hours in a day
+HOURS_IN_DAY = 24
+# The number of seconds in an hour
+SECONDS_IN_HOUR = 3600
+
+
 class Event(object):
 
     # A list of conference domains to look for, in order of precedence
@@ -40,6 +46,7 @@ class Event(object):
             date=datetime.datetime.now().date(),
             time=Event.get_vevent_datetime(vevent).time(),
             tzinfo=Event.get_vevent_datetime(vevent).tzinfo)
+        self.start_datetime_raw = self.correct_for_dst(self.start_datetime_raw)
         self.start_datetime_utc = pytz.utc.normalize(self.start_datetime_raw)
         self.start_datetime_local = Event.localize_datetime(self.start_datetime_utc)
         self.location = vevent.get('location')
@@ -70,6 +77,35 @@ class Event(object):
             # Handle events with a specific date/time
             return vevent.get('dtstart').dt
 
+    # Correct the given datetime object for Daylight Saving Time (DST); if the
+    # datetime is exactly an hour behind the current system timezone, the given
+    # datetime's timezone is updated to be the current system timezone
+    def correct_for_dst(self, raw_datetime):
+
+        current_datetime = datetime.datetime.now().astimezone()
+        raw_offset = self.get_rel_utc_offset_in_hours(raw_datetime)
+        local_offset = self.get_rel_utc_offset_in_hours(current_datetime)
+        if (local_offset - raw_offset) == -1:
+            # adjusted_datetime = raw_datetime.combine(
+            #     date=raw_datetime.date(),
+            #     time=raw_datetime.time(),
+            #     tzinfo=current_datetime.tzinfo)
+            print('adjust for dst:')
+            print(raw_datetime)
+            return raw_datetime
+        else:
+            print('no mods:')
+            print(raw_datetime)
+            return raw_datetime
+
+    # Return the UTC offset of the given datetime object as a positive or
+    # negative integer, representing the number of hours difference from UTC
+    def get_rel_utc_offset_in_hours(self, raw_datetime):
+
+        # An absolute positive offset (whereas the absolute offset for UTC is 3600 * 24)
+        abs_offset_in_seconds = raw_datetime.utcoffset().seconds
+        return (abs_offset_in_seconds // SECONDS_IN_HOUR) - HOURS_IN_DAY
+
     # Convert the given UTC date/time to equivalent date/time in the local
     # timezone
     @staticmethod
@@ -81,7 +117,6 @@ class Event(object):
         now_datetime = datetime.datetime.fromtimestamp(now_timestamp).astimezone()
         now_utc_datetime = datetime.datetime.utcfromtimestamp(now_timestamp).astimezone()
         offset = now_datetime - now_utc_datetime
-        print(offset.seconds // 3600)
         offset_datetime = utc_datetime + offset
         return offset_datetime.combine(
             date=offset_datetime.date(),
